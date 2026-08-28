@@ -1,5 +1,6 @@
 import express from "express";
 import usersRoute from "./routes/users.route.js";
+import postRoute from "./routes/post.route.js";
 
 const app = express();
 
@@ -15,5 +16,6 @@ app.get("/", (req, res) => {
 });
 
 app.use(usersRoute);
+app.use(postRoute);
 
 export default app;
