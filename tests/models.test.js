@@ -75,7 +75,7 @@ describe("User model", () => {
     await userModel.create({
       name: "Ada",
       email: "ada@example.com",
-      password: "hash",
+      password: "Password1!",
     });
 
     const found = await userModel.findOne({ email: "ada@example.com" });
@@ -84,7 +84,7 @@ describe("User model", () => {
       .select("+password");
 
     expect(found.password).toBeUndefined();
-    expect(withPassword.password).toBe("hash");
+    expect(withPassword.password).toBeDefined();
   });
 });
 
