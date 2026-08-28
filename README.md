@@ -6,7 +6,7 @@ created by an authenticated user and is always attributed to the account on
 
 ## Flow
 
-```
+```text
 Register  ->  Login  ->  Receive token  ->  Send token  ->  Create post
 ```
 
@@ -25,28 +25,29 @@ npm start                # or: npm run dev
 
 ### Environment variables
 
-| Variable         | Description                                | Example                                       |
-| ---------------- | ------------------------------------------ | --------------------------------------------- |
-| `PORT`           | Port the server listens on                 | `4000`                                        |
-| `DBURL`          | MongoDB connection string                  | `mongodb://127.0.0.1:27017/axia-11-second-exam` |
-| `JWT_SECRET`     | Secret used to sign and verify tokens      | a long random string                          |
-| `JWT_EXPIRES_IN` | How long an issued token stays valid       | `1d`                                          |
+| Variable         | Description                           | Example                                         |
+| ---------------- | ------------------------------------- | ----------------------------------------------- |
+| `PORT`           | Port the server listens on            | `4000`                                          |
+| `DBURL`          | MongoDB connection string             | `mongodb://127.0.0.1:27017/axia-11-second-exam` |
+| `JWT_SECRET`     | Secret used to sign and verify tokens | a long random string                            |
+| `JWT_EXPIRES_IN` | How long an issued token stays valid  | `1d`                                            |
 
 The server refuses to start if `DBURL` or `JWT_SECRET` is missing.
 
 ## Scripts
 
-| Command            | What it does                                  |
-| ------------------ | --------------------------------------------- |
-| `npm start`        | Start the server                              |
-| `npm run dev`      | Start the server and reload on file changes   |
-| `npm test`         | Run the Jest test suite                       |
-| `npm run lint`     | Lint every source and test file               |
-| `npm run lint:fix` | Lint and auto-fix what can be fixed           |
+| Command            | What it does                                |
+| ------------------ | ------------------------------------------- |
+| `npm start`        | Start the server                            |
+| `npm run dev`      | Start the server and reload on file changes |
+| `npm test`         | Run the test suite (in-memory MongoDB)      |
+| `npm run test:e2e` | Run the e2e suite against a real MongoDB    |
+| `npm run lint`     | Lint every source and test file             |
+| `npm run lint:fix` | Lint and auto-fix what can be fixed         |
 
 ## Project structure
 
-```
+```text
 config/       mongoose connection
 controllers/  request handlers
 middlewares/  authentication, not found, error handling
@@ -66,21 +67,21 @@ without opening a port or connecting to the real database.
 
 ### User
 
-| Field      | Type   | Notes                                          |
-| ---------- | ------ | ---------------------------------------------- |
-| `name`     | String | required                                       |
-| `email`    | String | required, unique, lowercased, format checked   |
+| Field      | Type   | Notes                                                                                   |
+| ---------- | ------ | --------------------------------------------------------------------------------------- |
+| `name`     | String | required                                                                                |
+| `email`    | String | required, unique, lowercased, format checked                                            |
 | `password` | String | required, stored as a bcrypt hash, never returned by a query unless explicitly selected |
 
 Timestamps are enabled.
 
 ### Post
 
-| Field        | Type     | Notes                                     |
-| ------------ | -------- | ----------------------------------------- |
-| `title`      | String   | required                                  |
-| `description`| String   | required                                  |
-| `creatorId`  | ObjectId | required, references the `user` collection |
+| Field         | Type     | Notes                                      |
+| ------------- | -------- | ------------------------------------------ |
+| `title`       | String   | required                                   |
+| `description` | String   | required                                   |
+| `creatorId`   | ObjectId | required, references the `user` collection |
 
 Timestamps are enabled.
 
@@ -134,13 +135,13 @@ never reveals which addresses are registered.
 
 Returns whatever the authentication middleware put on `req.user`.
 
-```
+```http
 Authorization: Bearer <token>
 ```
 
 ### `POST /posts` — protected
 
-```
+```http
 Authorization: Bearer <token>
 ```
 
@@ -170,7 +171,7 @@ ignored, so a caller cannot attribute a post to somebody else.
 ## Authentication
 
 `middlewares/authentication.middleware.js` reads the `Authorization` header,
-accepts it with or without the `Bearer ` prefix, verifies the JWT, loads the
+accepts it with or without the `Bearer` prefix, verifies the JWT, loads the
 account from the database and attaches it to the request:
 
 ```js
@@ -187,17 +188,17 @@ carrying a status and hand it to `next(error)`, and one error-handling
 middleware mounted last turns it into a response. A request that matches no
 route falls through to the not-found middleware and becomes a `404`.
 
-| Situation                       | Status | Message                                  |
-| ------------------------------- | ------ | ---------------------------------------- |
-| Failed validation               | 400    | every problem found, joined together     |
-| Unparsable JSON body            | 400    | `request body must be valid JSON`        |
-| Bad ObjectId                    | 400    | `<field> must be a valid ObjectId`       |
-| Missing or invalid token        | 401    | `authentication token is invalid`        |
-| Expired token                   | 401    | `authentication token has expired`       |
-| Wrong credentials               | 401    | `invalid email or password`              |
-| Unknown route                   | 404    | `route <METHOD> <path> not found`        |
-| Duplicate email                 | 409    | `an account with this email already exists` |
-| Anything unexpected             | 500    | `Server error`                           |
+| Situation                | Status | Message                                     |
+| ------------------------ | ------ | ------------------------------------------- |
+| Failed validation        | 400    | every problem found, joined together        |
+| Unparsable JSON body     | 400    | `request body must be valid JSON`           |
+| Bad ObjectId             | 400    | `<field> must be a valid ObjectId`          |
+| Missing or invalid token | 401    | `authentication token is invalid`           |
+| Expired token            | 401    | `authentication token has expired`          |
+| Wrong credentials        | 401    | `invalid email or password`                 |
+| Unknown route            | 404    | `route <METHOD> <path> not found`           |
+| Duplicate email          | 409    | `an account with this email already exists` |
+| Anything unexpected      | 500    | `Server error`                              |
 
 Unexpected errors are logged in full on the server and reported to the client
 as a plain `Server error`, so internal details are never leaked.
@@ -213,3 +214,22 @@ tests exercise genuine database writes rather than mocks. It covers both
 schemas, the validators, registration, login, password hashing, every
 rejection path of the authentication middleware, the protected post endpoint
 (including a spoofed `creatorId` being ignored) and the error handler.
+
+### End-to-end tests
+
+```bash
+npm run test:e2e
+```
+
+These run against a real MongoDB server rather than an in-memory one, so they
+also cover `config/db.js` — the connection the application actually uses at
+startup. They walk the whole exam flow (register, login, token, protected
+route, create post) and then read the documents back with the raw MongoDB
+driver to confirm the password was stored as a bcrypt hash and that
+`creatorId` is a genuine BSON `ObjectId` pointing at the right account.
+
+The suite needs a MongoDB server running. It connects to
+`mongodb://127.0.0.1:27017/axia-11-second-exam-e2e` unless `E2E_DBURL` says
+otherwise, and it never uses the `DBURL` from your `.env`. Because it drops
+its database when it finishes, it refuses to start unless the database name
+contains `e2e` or `test`.
