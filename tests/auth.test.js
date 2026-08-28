@@ -214,9 +214,7 @@ describe("Authentication middleware", () => {
       .set("Authorization", "Bearer not.a.real.token");
 
     expect(response.status).toBe(401);
-    expect(response.body.message).toBe(
-      "authentication token is invalid or has expired",
-    );
+    expect(response.body.message).toBe("authentication token is invalid");
   });
 
   // Confirms a token signed with the wrong secret is refused.
@@ -246,9 +244,7 @@ describe("Authentication middleware", () => {
       .set("Authorization", `Bearer ${token}`);
 
     expect(response.status).toBe(401);
-    expect(response.body.message).toBe(
-      "authentication token is invalid or has expired",
-    );
+    expect(response.body.message).toBe("authentication token has expired");
   });
 
   // Confirms a valid token for a deleted account is refused.

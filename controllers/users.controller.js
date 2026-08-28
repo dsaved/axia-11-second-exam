@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import userModel from "../models/users.model.js";
+import { createError } from "../utils/error.util.js";
 import {
   validateRegisterInput,
   validateLoginInput,
@@ -23,7 +24,7 @@ export const registerUser = async (req, res, next) => {
   try {
     const errors = validateRegisterInput(req.body);
     if (errors.length) {
-      return res.status(400).json({ message: errors.join(", ") });
+      throw createError(400, errors.join(", "));
     }
 
     const { name, email, password } = req.body;
@@ -31,9 +32,7 @@ export const registerUser = async (req, res, next) => {
 
     const existingUser = await userModel.findOne({ email: normalisedEmail });
     if (existingUser) {
-      return res
-        .status(409)
-        .json({ message: "an account with this email already exists" });
+      throw createError(409, "an account with this email already exists");
     }
 
     const user = await userModel.create({
@@ -56,7 +55,7 @@ export const loginUser = async (req, res, next) => {
   try {
     const errors = validateLoginInput(req.body);
     if (errors.length) {
-      return res.status(400).json({ message: errors.join(", ") });
+      throw createError(400, errors.join(", "));
     }
 
     const { email, password } = req.body;
@@ -68,7 +67,7 @@ export const loginUser = async (req, res, next) => {
 
     // The same message covers both cases so we never reveal which emails exist.
     if (!user || !(await user.comparePassword(password))) {
-      return res.status(401).json({ message: "invalid email or password" });
+      throw createError(401, "invalid email or password");
     }
 
     return res.status(200).json({
